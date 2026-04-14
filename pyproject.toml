@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-atlassian"
+version = "0.1.0"
+description = "JIRA REST API 기반 경량 MCP 서버"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=1.0.0",
+    "httpx>=0.27.0",
+    "click>=8.0.0",
+    "python-dotenv",
+]
+
+[project.scripts]
+mcp-atlassian = "mcp_atlassian:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
