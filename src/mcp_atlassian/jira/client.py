@@ -43,16 +43,47 @@ class JiraClient:
             return {}
         return response.json()
 
+    async def put(self, path: str, json_data: dict[str, Any] | None = None) -> dict:
+        """PUT 요청."""
+        response = await self._client.put(path, json=json_data)
+        response.raise_for_status()
+        if response.status_code == 204:
+            return {}
+        return response.json()
+
+    async def delete(self, path: str) -> None:
+        """DELETE 요청."""
+        response = await self._client.delete(path)
+        response.raise_for_status()
+
     # ── JIRA API 메서드 ──
 
     async def get_issue(self, issue_key: str) -> dict:
         return await self.get(f"/rest/api/3/issue/{issue_key}")
+
+    async def create_issue(self, fields: dict[str, Any]) -> dict:
+        return await self.post("/rest/api/3/issue", json_data={"fields": fields})
+
+    async def update_issue(self, issue_key: str, fields: dict[str, Any]) -> dict:
+        return await self.put(
+            f"/rest/api/3/issue/{issue_key}",
+            json_data={"fields": fields},
+        )
 
     async def get_comments(self, issue_key: str) -> dict:
         return await self.get(f"/rest/api/3/issue/{issue_key}/comment")
 
     async def add_comment(self, issue_key: str, body: dict) -> dict:
         return await self.post(f"/rest/api/3/issue/{issue_key}/comment", json_data=body)
+
+    async def update_comment(self, issue_key: str, comment_id: str, body: dict) -> dict:
+        return await self.put(
+            f"/rest/api/3/issue/{issue_key}/comment/{comment_id}",
+            json_data=body,
+        )
+
+    async def delete_comment(self, issue_key: str, comment_id: str) -> None:
+        await self.delete(f"/rest/api/3/issue/{issue_key}/comment/{comment_id}")
 
     async def search_issues(self, jql: str, max_results: int = 20) -> dict:
         return await self.get(
