@@ -11,7 +11,7 @@ from pydantic import Field
 
 from ..confluence.models import ConfluencePage, ConfluenceSearchHit
 
-logger = logging.getLogger("mcp_atlassian.tools.confluence")
+logger = logging.getLogger("mcp_gateway.tools.confluence")
 
 
 def register_tools(mcp: FastMCP) -> None:

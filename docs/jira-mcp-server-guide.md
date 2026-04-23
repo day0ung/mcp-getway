@@ -97,12 +97,12 @@ JIRA_API_TOKEN=<API 토큰>
 
 ### Claude Code 연동 설정
 
-서버를 먼저 실행(`python -m mcp_atlassian`)한 뒤, settings.json에 URL만 등록:
+서버를 먼저 실행(`python -m mcp_gateway`)한 뒤, settings.json에 URL만 등록:
 
 ```json
 {
   "mcpServers": {
-    "atlassian": {
+    "gateway": {
       "url": "http://localhost:8000/sse"
     }
   }

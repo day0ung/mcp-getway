@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mcp-atlassian"
+name = "mcp-gateway"
 version = "0.1.0"
-description = "JIRA REST API 기반 경량 MCP 서버"
+description = "Jira / Confluence / GitLab REST API 기반 경량 MCP 게이트웨이"
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.0.0",
@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mcp-atlassian = "mcp_atlassian:main"
+mcp-gateway = "mcp_gateway:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -12,7 +12,7 @@ from pydantic import Field
 from ..jira.models import JiraComment, JiraIssue, JiraTransition
 from ..utils.adf import text_to_adf
 
-logger = logging.getLogger("mcp_atlassian.tools")
+logger = logging.getLogger("mcp_gateway.tools.jira")
 
 
 def register_tools(mcp: FastMCP) -> None:

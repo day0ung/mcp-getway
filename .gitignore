@@ -205,3 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# mcp-gateway 로컬 캐시 (외부 레포 참고용 clone, 다운로드한 README 등)
+.cache_pages/
