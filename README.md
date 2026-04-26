@@ -151,7 +151,7 @@ mcp-gateway
 {
   "mcpServers": {
     "gateway": {
-      "command": "C:/d-lab/repo/mcp-gateway/.venv/Scripts/mcp-gateway.exe",
+      "command": "C:/~/.venv/Scripts/mcp-gateway.exe",
       "args": ["--transport", "stdio"]
     }
   }
