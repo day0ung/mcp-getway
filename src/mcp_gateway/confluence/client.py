@@ -126,3 +126,22 @@ class ConfluenceClient:
 
     async def delete_page(self, page_id: str) -> None:
         await self.delete(f"/wiki/api/v2/pages/{page_id}")
+
+    async def get_database(self, database_id: str, body_format: str = "storage") -> dict:
+        """데이터베이스 메타데이터 조회."""
+        return await self.get(
+            f"/wiki/api/v2/databases/{database_id}",
+            params={"body-format": body_format},
+        )
+
+    async def list_databases(
+        self, space_key: str | None = None, limit: int = 25
+    ) -> dict:
+        """데이터베이스 목록 조회. CQL을 사용 (v2 목록 API는 서버 측 500 오류).
+
+        space_key를 주면 해당 스페이스로 필터링 (예: DEV, ~71202050cf...).
+        """
+        cql = "type=database"
+        if space_key:
+            cql += f' AND space="{space_key}"'
+        return await self.get("/wiki/rest/api/search", params={"cql": cql, "limit": limit})

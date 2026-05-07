@@ -9,7 +9,7 @@ from typing import Annotated
 from mcp.server.fastmcp import Context, FastMCP
 from pydantic import Field
 
-from ..confluence.models import ConfluencePage, ConfluenceSearchHit
+from ..confluence.models import ConfluenceDatabase, ConfluencePage, ConfluenceSearchHit
 
 logger = logging.getLogger("mcp_gateway.tools.confluence")
 
@@ -152,6 +152,49 @@ def register_tools(mcp: FastMCP) -> None:
             next_version,
         )
         return json.dumps(page, ensure_ascii=False, indent=2)
+
+    @mcp.tool()
+    async def get_confluence_database(
+        ctx: Context,
+        database_id: Annotated[str, Field(description="Confluence 데이터베이스 ID (숫자)")],
+    ) -> str:
+        """Confluence 데이터베이스 메타데이터를 조회한다.
+
+        데이터베이스 URL 예시:
+        https://<host>/wiki/spaces/<space>/database/<id>
+        위 URL의 마지막 숫자 부분이 database_id 이다.
+        """
+        logger.info("get_confluence_database 호출: %s", database_id)
+        client = ctx.request_context.lifespan_context["confluence_client"]
+        raw = await client.get_database(database_id)
+        db = ConfluenceDatabase.from_raw(raw)
+        logger.info("get_confluence_database 완료: %s", database_id)
+        return json.dumps(db, ensure_ascii=False, indent=2)
+
+    @mcp.tool()
+    async def list_confluence_databases(
+        ctx: Context,
+        space_key: Annotated[
+            str,
+            Field(
+                description="스페이스 키로 필터링 (선택). 예: DEV, ~71202050cf... — 비우면 전체 조회",
+                default="",
+            ),
+        ] = "",
+        limit: Annotated[int, Field(description="최대 결과 수", default=25)] = 25,
+    ) -> str:
+        """Confluence 데이터베이스 목록을 조회한다."""
+        logger.info("list_confluence_databases 호출: space_key=%s, limit=%d", space_key, limit)
+        client = ctx.request_context.lifespan_context["confluence_client"]
+        raw = await client.list_databases(space_key=space_key or None, limit=limit)
+        hits = raw.get("results", [])
+        dbs = [ConfluenceDatabase.from_raw(h.get("content", h)) for h in hits]
+        result = {
+            "total_size": raw.get("totalSize", len(dbs)),
+            "results": dbs,
+        }
+        logger.info("list_confluence_databases 완료: %d건", len(dbs))
+        return json.dumps(result, ensure_ascii=False, indent=2)
 
     @mcp.tool()
     async def delete_confluence_page(
