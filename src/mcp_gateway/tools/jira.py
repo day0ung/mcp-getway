@@ -29,7 +29,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.get_issue(issue_key)
         issue = JiraIssue.from_raw(raw)
         logger.info("get_issue 완료: %s", issue_key)
-        return json.dumps(issue, ensure_ascii=False, indent=2)
+        return json.dumps(issue, ensure_ascii=False)
 
     @mcp.tool()
     async def get_comments(
@@ -42,7 +42,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.get_comments(issue_key)
         comments = [JiraComment.from_raw(c) for c in raw.get("comments", [])]
         logger.info("get_comments 완료: %s → %d건", issue_key, len(comments))
-        return json.dumps(comments, ensure_ascii=False, indent=2)
+        return json.dumps(comments, ensure_ascii=False)
 
     @mcp.tool()
     async def add_comment(
@@ -57,7 +57,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.add_comment(issue_key, adf_body)
         comment = JiraComment.from_raw(raw)
         logger.info("add_comment 완료: %s", issue_key)
-        return json.dumps(comment, ensure_ascii=False, indent=2)
+        return json.dumps(comment, ensure_ascii=False)
 
     @mcp.tool()
     async def update_comment(
@@ -73,7 +73,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.update_comment(issue_key, comment_id, adf_body)
         comment = JiraComment.from_raw(raw)
         logger.info("update_comment 완료: %s / %s", issue_key, comment_id)
-        return json.dumps(comment, ensure_ascii=False, indent=2)
+        return json.dumps(comment, ensure_ascii=False)
 
     @mcp.tool()
     async def delete_comment(
@@ -182,7 +182,7 @@ def register_tools(mcp: FastMCP) -> None:
             "issues": issues,
         }
         logger.info("search_issues 완료: %d건 조회", len(issues))
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json.dumps(result, ensure_ascii=False)
 
     @mcp.tool()
     async def get_transitions(
@@ -195,7 +195,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.get_transitions(issue_key)
         transitions = [JiraTransition.from_raw(t) for t in raw.get("transitions", [])]
         logger.info("get_transitions 완료: %s → %d건", issue_key, len(transitions))
-        return json.dumps(transitions, ensure_ascii=False, indent=2)
+        return json.dumps(transitions, ensure_ascii=False)
 
     @mcp.tool()
     async def transition_issue(

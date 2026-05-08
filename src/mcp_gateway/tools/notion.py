@@ -129,7 +129,7 @@ def register_tools(mcp: FastMCP) -> None:
             "results": hits,
         }
         logger.info("search_notion 완료: %d건", len(hits))
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json.dumps(result, ensure_ascii=False)
 
     @mcp.tool()
     async def get_notion_page(
@@ -155,7 +155,7 @@ def register_tools(mcp: FastMCP) -> None:
             blocks = await client.get_all_block_children(page["id"])
             page["body"] = NotionBlock.to_markdown(blocks)
         logger.info("get_notion_page 완료: %s", page_id)
-        return json.dumps(page, ensure_ascii=False, indent=2)
+        return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
     async def create_notion_page(
@@ -231,7 +231,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
         page = NotionPage.from_raw(raw)
         logger.info("create_notion_page 완료: %s", page.get("id", ""))
-        return json.dumps(page, ensure_ascii=False, indent=2)
+        return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
     async def update_notion_page(
@@ -279,7 +279,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
         page = NotionPage.from_raw(raw)
         logger.info("update_notion_page 완료: %s", page_id)
-        return json.dumps(page, ensure_ascii=False, indent=2)
+        return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
     async def append_notion_blocks(
@@ -328,7 +328,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.get_database(database_id)
         db = NotionDatabase.from_raw(raw)
         logger.info("get_notion_database 완료: %s", database_id)
-        return json.dumps(db, ensure_ascii=False, indent=2)
+        return json.dumps(db, ensure_ascii=False)
 
     @mcp.tool()
     async def query_notion_database(
@@ -381,4 +381,4 @@ def register_tools(mcp: FastMCP) -> None:
             "results": rows,
         }
         logger.info("query_notion_database 완료: %d건", len(rows))
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json.dumps(result, ensure_ascii=False)

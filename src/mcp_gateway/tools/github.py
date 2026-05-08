@@ -39,7 +39,7 @@ def register_tools(mcp: FastMCP) -> None:
         """GitHub 저장소 목록을 조회한다. search 없으면 내 저장소, 있으면 전체 검색."""
         logger.info("gh_list_repos: search=%s", search)
         raw = await _client(ctx).list_repos(search=search or None, per_page=per_page)
-        return json.dumps([GitHubRepo.summary(r) for r in raw], ensure_ascii=False, indent=2)
+        return json.dumps([GitHubRepo.summary(r) for r in raw], ensure_ascii=False)
 
     @mcp.tool()
     async def gh_get_repo(
@@ -49,7 +49,7 @@ def register_tools(mcp: FastMCP) -> None:
         """GitHub 저장소 상세 정보를 조회한다."""
         logger.info("gh_get_repo: %s", owner_repo)
         raw = await _client(ctx).get_repo(owner_repo)
-        return json.dumps(GitHubRepo.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitHubRepo.summary(raw), ensure_ascii=False)
 
     @mcp.tool()
     async def gh_get_file_contents(
@@ -78,7 +78,7 @@ def register_tools(mcp: FastMCP) -> None:
                 out["note"] = "바이너리 파일로 판단되어 decoded_content 를 제공하지 않음"
         else:
             out["content"] = raw.get("content", "")
-        return json.dumps(out, ensure_ascii=False, indent=2)
+        return json.dumps(out, ensure_ascii=False)
 
     @mcp.tool()
     async def gh_get_repository_tree(
@@ -95,7 +95,7 @@ def register_tools(mcp: FastMCP) -> None:
             {"name": item.get("name", ""), "path": item.get("path", ""), "type": item.get("type", ""), "size": item.get("size")}
             for item in raw
         ]
-        return json.dumps(simplified, ensure_ascii=False, indent=2)
+        return json.dumps(simplified, ensure_ascii=False)
 
     @mcp.tool()
     async def gh_list_commits(
@@ -111,7 +111,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await _client(ctx).list_commits(
             owner_repo, sha=sha or None, since=since or None, until=until or None, per_page=per_page
         )
-        return json.dumps([GitHubCommit.summary(c) for c in raw], ensure_ascii=False, indent=2)
+        return json.dumps([GitHubCommit.summary(c) for c in raw], ensure_ascii=False)
 
     # ── Branches ─────────────────────────────────────────────────────────
 
@@ -124,7 +124,7 @@ def register_tools(mcp: FastMCP) -> None:
         """GitHub 저장소의 브랜치 목록을 조회한다."""
         logger.info("gh_list_branches: %s", owner_repo)
         raw = await _client(ctx).list_branches(owner_repo, per_page=per_page)
-        return json.dumps([GitHubBranch.summary(b) for b in raw], ensure_ascii=False, indent=2)
+        return json.dumps([GitHubBranch.summary(b) for b in raw], ensure_ascii=False)
 
     @mcp.tool()
     async def gh_create_branch(
@@ -191,7 +191,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await _client(ctx).list_pull_requests(
             owner_repo, state=state, head=head or None, base=base or None, per_page=per_page
         )
-        return json.dumps([GitHubPullRequest.summary(p) for p in raw], ensure_ascii=False, indent=2)
+        return json.dumps([GitHubPullRequest.summary(p) for p in raw], ensure_ascii=False)
 
     @mcp.tool()
     async def gh_get_pull_request(
@@ -202,7 +202,7 @@ def register_tools(mcp: FastMCP) -> None:
         """GitHub PR 상세 정보를 조회한다."""
         logger.info("gh_get_pull_request: %s #%d", owner_repo, pull_number)
         raw = await _client(ctx).get_pull_request(owner_repo, pull_number)
-        return json.dumps(GitHubPullRequest.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitHubPullRequest.summary(raw), ensure_ascii=False)
 
     @mcp.tool()
     async def gh_create_pull_request(
@@ -219,7 +219,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await _client(ctx).create_pull_request(
             owner_repo, head=head, base=base, title=title, body=body, draft=draft
         )
-        return json.dumps(GitHubPullRequest.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitHubPullRequest.summary(raw), ensure_ascii=False)
 
     @mcp.tool()
     async def gh_list_pr_changed_files(
@@ -248,7 +248,7 @@ def register_tools(mcp: FastMCP) -> None:
                 "deletions": f.get("deletions", 0),
                 "changes": f.get("changes", 0),
             })
-        return json.dumps({"count": len(results), "files": results}, ensure_ascii=False, indent=2)
+        return json.dumps({"count": len(results), "files": results}, ensure_ascii=False)
 
     @mcp.tool()
     async def gh_get_pr_file_diff(
@@ -261,8 +261,18 @@ def register_tools(mcp: FastMCP) -> None:
         logger.info("gh_get_pr_file_diff: %s #%d files=%s", owner_repo, pull_number, file_paths)
         wanted = {p.strip() for p in file_paths.split(",") if p.strip()}
         raw = await _client(ctx).get_pull_request_files(owner_repo, pull_number, per_page=100)
-        matched = [f for f in raw if f.get("filename") in wanted]
-        return json.dumps({"count": len(matched), "diffs": matched}, ensure_ascii=False, indent=2)
+        matched = [
+            {
+                "filename": f.get("filename", ""),
+                "status": f.get("status", ""),
+                "additions": f.get("additions", 0),
+                "deletions": f.get("deletions", 0),
+                "changes": f.get("changes", 0),
+                "patch": f.get("patch", ""),
+            }
+            for f in raw if f.get("filename") in wanted
+        ]
+        return json.dumps({"count": len(matched), "diffs": matched}, ensure_ascii=False)
 
     @mcp.tool()
     async def gh_merge_pull_request(
@@ -282,7 +292,7 @@ def register_tools(mcp: FastMCP) -> None:
             commit_message=commit_message or None,
             merge_method=merge_method,
         )
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+        return json.dumps({"sha": raw.get("sha", ""), "merged": raw.get("merged", False), "message": raw.get("message", "")}, ensure_ascii=False)
 
     # ── PR 리뷰 / 댓글 ────────────────────────────────────────────────
 

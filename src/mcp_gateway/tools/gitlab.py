@@ -54,7 +54,7 @@ def register_tools(mcp: FastMCP) -> None:
         """GitLab 프로젝트 상세 정보를 조회한다."""
         logger.info("get_project: %s", project_id)
         raw = await _client(ctx).get_project(project_id)
-        return json.dumps(GitLabProject.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitLabProject.summary(raw), ensure_ascii=False)
 
     @mcp.tool()
     async def get_file_contents(
@@ -83,7 +83,7 @@ def register_tools(mcp: FastMCP) -> None:
                 out["note"] = "바이너리 파일로 판단되어 decoded_content 를 제공하지 않음"
         else:
             out["content"] = raw.get("content", "")
-        return json.dumps(out, ensure_ascii=False, indent=2)
+        return json.dumps(out, ensure_ascii=False)
 
     @mcp.tool()
     async def get_repository_tree(
@@ -99,7 +99,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await _client(ctx).get_repository_tree(
             project_id, path=path, ref=ref or None, recursive=recursive, per_page=per_page
         )
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+        return json.dumps(raw, ensure_ascii=False)
 
     @mcp.tool()
     async def list_commits(
@@ -115,7 +115,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await _client(ctx).list_commits(
             project_id, ref_name=ref_name or None, since=since or None, until=until or None, per_page=per_page
         )
-        return json.dumps([GitLabCommit.summary(c) for c in raw], ensure_ascii=False, indent=2)
+        return json.dumps([GitLabCommit.summary(c) for c in raw], ensure_ascii=False)
 
     # ── Branches ─────────────────────────────────────────────────────────
 
@@ -129,7 +129,7 @@ def register_tools(mcp: FastMCP) -> None:
         """GitLab 프로젝트의 브랜치 목록을 조회한다."""
         logger.info("list_branches: %s search=%s", project_id, search)
         raw = await _client(ctx).list_branches(project_id, search=search or None, per_page=per_page)
-        return json.dumps([GitLabBranch.summary(b) for b in raw], ensure_ascii=False, indent=2)
+        return json.dumps([GitLabBranch.summary(b) for b in raw], ensure_ascii=False)
 
     @mcp.tool()
     async def create_branch(
@@ -141,7 +141,7 @@ def register_tools(mcp: FastMCP) -> None:
         """GitLab 프로젝트에 새 브랜치를 생성한다."""
         logger.info("create_branch: %s %s ← %s", project_id, branch, ref)
         raw = await _client(ctx).create_branch(project_id, branch=branch, ref=ref)
-        return json.dumps(GitLabBranch.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitLabBranch.summary(raw), ensure_ascii=False)
 
     @mcp.tool()
     async def get_branch_diffs(
@@ -154,7 +154,27 @@ def register_tools(mcp: FastMCP) -> None:
         """두 브랜치/커밋 사이의 변경사항(diff)을 조회한다."""
         logger.info("get_branch_diffs: %s %s…%s straight=%s", project_id, from_ref, to_ref, straight)
         raw = await _client(ctx).get_branch_diffs(project_id, from_ref=from_ref, to_ref=to_ref, straight=straight)
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+        commits = raw.get("commits", [])
+        diffs = raw.get("diffs", [])
+        return json.dumps({
+            "compare_timeout": raw.get("compare_timeout", False),
+            "web_url": raw.get("web_url", ""),
+            "commits": [
+                {"short_id": c.get("short_id", ""), "title": c.get("title", ""), "author_name": c.get("author_name", "")}
+                for c in commits
+            ],
+            "diffs": [
+                {
+                    "old_path": d.get("old_path", ""),
+                    "new_path": d.get("new_path", ""),
+                    "new_file": d.get("new_file", False),
+                    "renamed_file": d.get("renamed_file", False),
+                    "deleted_file": d.get("deleted_file", False),
+                    "diff": d.get("diff", ""),
+                }
+                for d in diffs
+            ],
+        }, ensure_ascii=False)
 
     # ── Merge Requests ──────────────────────────────────────────────────
 
@@ -178,7 +198,7 @@ def register_tools(mcp: FastMCP) -> None:
             search=search or None,
             per_page=per_page,
         )
-        return json.dumps([GitLabMergeRequest.summary(m) for m in raw], ensure_ascii=False, indent=2)
+        return json.dumps([GitLabMergeRequest.summary(m) for m in raw], ensure_ascii=False)
 
     @mcp.tool()
     async def get_merge_request(
@@ -189,7 +209,7 @@ def register_tools(mcp: FastMCP) -> None:
         """MR 상세 정보를 조회한다."""
         logger.info("get_merge_request: %s !%d", project_id, merge_request_iid)
         raw = await _client(ctx).get_merge_request(project_id, merge_request_iid)
-        return json.dumps(GitLabMergeRequest.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitLabMergeRequest.summary(raw), ensure_ascii=False)
 
     @mcp.tool()
     async def create_merge_request(
@@ -219,7 +239,7 @@ def register_tools(mcp: FastMCP) -> None:
             remove_source_branch=remove_source_branch,
             draft=draft,
         )
-        return json.dumps(GitLabMergeRequest.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitLabMergeRequest.summary(raw), ensure_ascii=False)
 
     @mcp.tool()
     async def get_merge_request_diffs(
@@ -235,7 +255,11 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await _client(ctx).get_merge_request_diffs(
             project_id, merge_request_iid, page=page, per_page=per_page, unidiff=unidiff
         )
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+        filtered = [
+            {k: d[k] for k in ("old_path", "new_path", "new_file", "renamed_file", "deleted_file", "too_large", "diff") if k in d}
+            for d in raw
+        ]
+        return json.dumps({"count": len(filtered), "diffs": filtered}, ensure_ascii=False)
 
     @mcp.tool()
     async def list_merge_request_changed_files(
@@ -268,7 +292,7 @@ def register_tools(mcp: FastMCP) -> None:
             if any(c.search(path) for c in compiled):
                 continue
             results.append(GitLabDiff.changed_file_summary(d))
-        return json.dumps({"count": len(results), "files": results}, ensure_ascii=False, indent=2)
+        return json.dumps({"count": len(results), "files": results}, ensure_ascii=False)
 
     @mcp.tool()
     async def get_merge_request_file_diff(
@@ -296,7 +320,7 @@ def register_tools(mcp: FastMCP) -> None:
         matched = [
             d for d in raw if d.get("new_path") in wanted or d.get("old_path") in wanted
         ]
-        return json.dumps({"count": len(matched), "diffs": matched}, ensure_ascii=False, indent=2)
+        return json.dumps({"count": len(matched), "diffs": matched}, ensure_ascii=False)
 
     @mcp.tool()
     async def approve_merge_request(
@@ -307,7 +331,8 @@ def register_tools(mcp: FastMCP) -> None:
         """MR을 승인(Approve)한다."""
         logger.info("approve_merge_request: %s !%d", project_id, merge_request_iid)
         raw = await _client(ctx).approve_merge_request(project_id, merge_request_iid)
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+        approved_by = [(e.get("user") or {}).get("username", "") for e in raw.get("approved_by", [])]
+        return json.dumps({"approved": raw.get("approved", False), "approved_by": approved_by}, ensure_ascii=False)
 
     @mcp.tool()
     async def merge_merge_request(
@@ -329,7 +354,7 @@ def register_tools(mcp: FastMCP) -> None:
             should_remove_source_branch=should_remove_source_branch,
             merge_when_pipeline_succeeds=merge_when_pipeline_succeeds,
         )
-        return json.dumps(GitLabMergeRequest.summary(raw), ensure_ascii=False, indent=2)
+        return json.dumps(GitLabMergeRequest.summary(raw), ensure_ascii=False)
 
     # ── MR 리뷰 ──────────────────────────────────────────────────────────
 
@@ -359,7 +384,30 @@ def register_tools(mcp: FastMCP) -> None:
         """MR의 discussion(스레드) 목록을 조회한다."""
         logger.info("mr_discussions: %s !%d", project_id, merge_request_iid)
         raw = await _client(ctx).mr_discussions(project_id, merge_request_iid, per_page=per_page)
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+
+        def _slim(d: dict) -> dict:
+            notes = []
+            for n in d.get("notes", []):
+                note: dict = {
+                    "id": n.get("id"),
+                    "body": n.get("body", ""),
+                    "author": (n.get("author") or {}).get("username", ""),
+                    "created_at": n.get("created_at", ""),
+                    "system": n.get("system", False),
+                    "resolved": n.get("resolved", False),
+                }
+                pos = n.get("position")
+                if pos:
+                    note["position"] = {
+                        "new_path": pos.get("new_path", ""),
+                        "old_path": pos.get("old_path", ""),
+                        "new_line": pos.get("new_line"),
+                        "old_line": pos.get("old_line"),
+                    }
+                notes.append(note)
+            return {"id": d.get("id", ""), "individual_note": d.get("individual_note", False), "notes": notes}
+
+        return json.dumps([_slim(d) for d in raw], ensure_ascii=False)
 
     @mcp.tool()
     async def create_merge_request_thread(
@@ -385,7 +433,13 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await _client(ctx).create_merge_request_thread(
             project_id, merge_request_iid, body=body, position=position
         )
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+        first_note = (raw.get("notes") or [{}])[0]
+        return json.dumps({
+            "id": raw.get("id", ""),
+            "individual_note": raw.get("individual_note", False),
+            "note_id": first_note.get("id"),
+            "body": first_note.get("body", ""),
+        }, ensure_ascii=False)
 
     @mcp.tool()
     async def create_draft_note(
@@ -412,7 +466,7 @@ def register_tools(mcp: FastMCP) -> None:
             position=position,
             in_reply_to_discussion_id=in_reply_to_discussion_id or None,
         )
-        return json.dumps(raw, ensure_ascii=False, indent=2)
+        return json.dumps({"id": raw.get("id"), "body": raw.get("body", ""), "merge_request_iid": raw.get("merge_request_iid")}, ensure_ascii=False)
 
     @mcp.tool()
     async def bulk_publish_draft_notes(

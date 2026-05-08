@@ -35,7 +35,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.get_page(page_id, body_format=body_format)
         page = ConfluencePage.from_raw(raw)
         logger.info("get_confluence_page 완료: %s", page_id)
-        return json.dumps(page, ensure_ascii=False, indent=2)
+        return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
     async def search_confluence(
@@ -58,7 +58,7 @@ def register_tools(mcp: FastMCP) -> None:
             "results": hits,
         }
         logger.info("search_confluence 완료: %d건", len(hits))
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json.dumps(result, ensure_ascii=False)
 
     @mcp.tool()
     async def create_confluence_page(
@@ -101,7 +101,7 @@ def register_tools(mcp: FastMCP) -> None:
         )
         page = ConfluencePage.from_raw(raw)
         logger.info("create_confluence_page 완료: id=%s", page.get("id", ""))
-        return json.dumps(page, ensure_ascii=False, indent=2)
+        return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
     async def update_confluence_page(
@@ -151,7 +151,7 @@ def register_tools(mcp: FastMCP) -> None:
             current_version,
             next_version,
         )
-        return json.dumps(page, ensure_ascii=False, indent=2)
+        return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
     async def get_confluence_database(
@@ -169,7 +169,7 @@ def register_tools(mcp: FastMCP) -> None:
         raw = await client.get_database(database_id)
         db = ConfluenceDatabase.from_raw(raw)
         logger.info("get_confluence_database 완료: %s", database_id)
-        return json.dumps(db, ensure_ascii=False, indent=2)
+        return json.dumps(db, ensure_ascii=False)
 
     @mcp.tool()
     async def list_confluence_databases(
@@ -194,7 +194,7 @@ def register_tools(mcp: FastMCP) -> None:
             "results": dbs,
         }
         logger.info("list_confluence_databases 완료: %d건", len(dbs))
-        return json.dumps(result, ensure_ascii=False, indent=2)
+        return json.dumps(result, ensure_ascii=False)
 
     @mcp.tool()
     async def delete_confluence_page(
