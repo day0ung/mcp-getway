@@ -94,7 +94,7 @@ def register_tools(mcp: FastMCP) -> None:
     """MCP 서버에 Notion 도구들을 등록한다."""
 
     @mcp.tool()
-    async def search_notion(
+    async def notion_search(
         ctx: Context,
         query: Annotated[
             str,
@@ -111,7 +111,7 @@ def register_tools(mcp: FastMCP) -> None:
     ) -> str:
         """Notion 워크스페이스에서 페이지/데이터베이스를 검색한다."""
         logger.info(
-            "search_notion 호출: query=%s, filter=%s, limit=%d",
+            "notion_search 호출: query=%s, filter=%s, limit=%d",
             query,
             filter_type or "all",
             limit,
@@ -128,11 +128,11 @@ def register_tools(mcp: FastMCP) -> None:
             "next_cursor": raw.get("next_cursor"),
             "results": hits,
         }
-        logger.info("search_notion 완료: %d건", len(hits))
+        logger.info("notion_search 완료: %d건", len(hits))
         return json.dumps(result, ensure_ascii=False)
 
     @mcp.tool()
-    async def get_notion_page(
+    async def notion_get_page(
         ctx: Context,
         page_id: Annotated[
             str,
@@ -147,18 +147,18 @@ def register_tools(mcp: FastMCP) -> None:
         ] = True,
     ) -> str:
         """Notion 페이지 properties와 (선택) 본문을 조회한다."""
-        logger.info("get_notion_page 호출: %s (body=%s)", page_id, include_body)
+        logger.info("notion_get_page 호출: %s (body=%s)", page_id, include_body)
         client = ctx.request_context.lifespan_context["notion_client"]
         raw = await client.get_page(page_id)
         page = NotionPage.from_raw(raw)
         if include_body:
             blocks = await client.get_all_block_children(page["id"])
             page["body"] = NotionBlock.to_markdown(blocks)
-        logger.info("get_notion_page 완료: %s", page_id)
+        logger.info("notion_get_page 완료: %s", page_id)
         return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
-    async def create_notion_page(
+    async def notion_create_page(
         ctx: Context,
         parent_id: Annotated[
             str,
@@ -200,7 +200,7 @@ def register_tools(mcp: FastMCP) -> None:
     ) -> str:
         """Notion 페이지를 생성한다 (페이지 하위 또는 데이터베이스 row)."""
         logger.info(
-            "create_notion_page 호출: parent=%s/%s, title=%s",
+            "notion_create_page 호출: parent=%s/%s, title=%s",
             parent_type,
             parent_id,
             title,
@@ -230,11 +230,11 @@ def register_tools(mcp: FastMCP) -> None:
             children=children,
         )
         page = NotionPage.from_raw(raw)
-        logger.info("create_notion_page 완료: %s", page.get("id", ""))
+        logger.info("notion_create_page 완료: %s", page.get("id", ""))
         return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
-    async def update_notion_page(
+    async def notion_update_page(
         ctx: Context,
         page_id: Annotated[str, Field(description="수정할 페이지 ID 또는 URL")],
         properties_json: Annotated[
@@ -255,7 +255,7 @@ def register_tools(mcp: FastMCP) -> None:
         ] = "",
     ) -> str:
         """Notion 페이지의 properties 또는 archive 상태를 변경한다."""
-        logger.info("update_notion_page 호출: %s", page_id)
+        logger.info("notion_update_page 호출: %s", page_id)
         client = ctx.request_context.lifespan_context["notion_client"]
         properties = _parse_json_arg(properties_json, "properties_json")
         archived_value: bool | None
@@ -278,11 +278,11 @@ def register_tools(mcp: FastMCP) -> None:
             archived=archived_value,
         )
         page = NotionPage.from_raw(raw)
-        logger.info("update_notion_page 완료: %s", page_id)
+        logger.info("notion_update_page 완료: %s", page_id)
         return json.dumps(page, ensure_ascii=False)
 
     @mcp.tool()
-    async def append_notion_blocks(
+    async def notion_append_blocks(
         ctx: Context,
         block_id: Annotated[
             str,
@@ -298,7 +298,7 @@ def register_tools(mcp: FastMCP) -> None:
         ],
     ) -> str:
         """페이지 또는 블록 하위에 본문 블록을 추가한다."""
-        logger.info("append_notion_blocks 호출: %s", block_id)
+        logger.info("notion_append_blocks 호출: %s", block_id)
         client = ctx.request_context.lifespan_context["notion_client"]
         children = _markdown_lines_to_blocks(body)
         if not children:
@@ -308,14 +308,14 @@ def register_tools(mcp: FastMCP) -> None:
             )
         raw = await client.append_blocks(block_id, children)
         added = raw.get("results", [])
-        logger.info("append_notion_blocks 완료: %s (+%d)", block_id, len(added))
+        logger.info("notion_append_blocks 완료: %s (+%d)", block_id, len(added))
         return json.dumps(
             {"success": True, "added": len(added)},
             ensure_ascii=False,
         )
 
     @mcp.tool()
-    async def get_notion_database(
+    async def notion_get_database(
         ctx: Context,
         database_id: Annotated[
             str,
@@ -323,15 +323,15 @@ def register_tools(mcp: FastMCP) -> None:
         ],
     ) -> str:
         """Notion 데이터베이스 메타데이터와 컬럼 스키마를 조회한다."""
-        logger.info("get_notion_database 호출: %s", database_id)
+        logger.info("notion_get_database 호출: %s", database_id)
         client = ctx.request_context.lifespan_context["notion_client"]
         raw = await client.get_database(database_id)
         db = NotionDatabase.from_raw(raw)
-        logger.info("get_notion_database 완료: %s", database_id)
+        logger.info("notion_get_database 완료: %s", database_id)
         return json.dumps(db, ensure_ascii=False)
 
     @mcp.tool()
-    async def query_notion_database(
+    async def notion_query_database(
         ctx: Context,
         database_id: Annotated[
             str,
@@ -361,7 +361,7 @@ def register_tools(mcp: FastMCP) -> None:
     ) -> str:
         """Notion 데이터베이스를 filter/sort로 조회한다."""
         logger.info(
-            "query_notion_database 호출: %s, limit=%d",
+            "notion_query_database 호출: %s, limit=%d",
             database_id,
             limit,
         )
@@ -380,5 +380,5 @@ def register_tools(mcp: FastMCP) -> None:
             "next_cursor": raw.get("next_cursor"),
             "results": rows,
         }
-        logger.info("query_notion_database 완료: %d건", len(rows))
+        logger.info("notion_query_database 완료: %d건", len(rows))
         return json.dumps(result, ensure_ascii=False)
