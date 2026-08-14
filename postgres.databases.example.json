@@ -1,33 +1,39 @@
 {
   "clusters": {
-    "nonprod": {
-      "host": "nonprod-pg.내부도메인",
+    "service_DB_name": {
+      "host": "localhost",
       "port": 5432,
-      "user": "readonly_user",
-      "password": "your_password_here",
+      "user": "",
+      "password": "",
       "ssl": false
-    }
+    },
+    "service_DB_name2": {
+      "host": "localhost",
+      "port": 5432,
+      "user": "",
+      "password": "",
+      "ssl": false
+    },
+    "service_DB_name3": {
+      "host": "localhost",
+      "port": 5432,
+      "user": "",
+      "password": "",
+      "ssl": false
+    },
   },
   "connections": {
-    "dev": {
-      "cluster": "nonprod",
-      "database": "db_dev",
-      "schema": "public"
-    },
-    "qa": {
-      "cluster": "nonprod",
-      "database": "db_qa"
-    },
-    "stage": {
-      "cluster": "nonprod",
-      "database": "db_stg"
-    },
-    "prod": {
-      "host": "prod-pg.내부도메인",
-      "database": "db",
-      "user": "readonly_user",
-      "password": "your_password_here",
-      "ssl": true
-    }
+    "service_DB_name_dev": { "cluster": "service_DB_name", "database": "service_DB_name_dev", "schema": "service_DB_name" },
+    "service_DB_name_qa": { "cluster": "service_DB_name", "database": "service_DB_name_qa", "schema": "service_DB_name" },
+    "service_DB_name_stg": { "cluster": "service_DB_name", "database": "service_DB_name_stg", "schema": "service_DB_name" },
+
+    "service_DB_name2_dev": { "cluster": "service_DB_name2", "database": "service_DB_name2_dev", "schema": "service_DB_name2" },
+    "service_DB_name2_qa": { "cluster": "service_DB_name2", "database": "service_DB_name2_qa", "schema": "service_DB_name2" },
+    "service_DB_name2_stg": { "cluster": "service_DB_name2", "database": "service_DB_name2_stg", "schema": "service_DB_name2" },
+
+    "service_DB_name3_dev": { "cluster": "service_DB_name3", "database": "service_DB_name3_dev", "schema": "service_DB_name3" },
+    "service_DB_name3_qa": { "cluster": "service_DB_name3", "database": "service_DB_name3_qa", "schema": "service_DB_name3" },
+    "service_DB_name3_stg": { "cluster": "service_DB_name3", "database": "service_DB_name3_stg", "schema": "service_DB_name3" },
+
   }
 }
