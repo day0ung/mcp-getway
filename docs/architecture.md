@@ -56,10 +56,16 @@ mcp-gateway/
         │   └── models.py            # GitLabProject, GitLabMergeRequest, GitLabBranch,
         │                            # GitLabCommit, GitLabDiff
         │
+        ├── postgres/              # PostgreSQL 서브모듈 (asyncpg 기반, 다른 서비스와 결이 다름)
+        │   ├── config.py            # PostgresConfig — postgres.databases.json에서 다중 연결(dev/qa/...) 로딩
+        │   ├── client.py            # asyncpg 커넥션 풀 + 읽기 전용 SQL 가드
+        │   └── models.py            # PostgresRow(JSON 직렬화), PostgresDDL, PostgresPlan
+        │
         ├── tools/                 # MCP 도구 등록
         │   ├── jira.py              # register_tools(mcp) → Jira 툴
         │   ├── confluence.py        # register_tools(mcp) → Confluence 툴
-        │   └── gitlab.py            # register_tools(mcp) → GitLab 툴 (21개)
+        │   ├── gitlab.py            # register_tools(mcp) → GitLab 툴 (21개)
+        │   └── postgres.py          # register_tools(mcp) → PostgreSQL 툴 (7개, 읽기 전용)
         │
         └── utils/
             └── adf.py             # Atlassian Document Format 파서
@@ -104,6 +110,7 @@ mcp-gateway/
 | Jira | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` | — |
 | Confluence | 없음 (Jira 자격증명 자동 공유) | `CONFLUENCE_BASE_URL` / `_EMAIL` / `_API_TOKEN`으로 개별 지정 가능 |
 | GitLab | `GITLAB_BASE_URL`, `GITLAB_TOKEN` | `/api/v4` 접미사는 client가 자동 부착, `config`에서 떼어냄 |
+| PostgreSQL | 없음 (`POSTGRES_CONFIG_FILE`은 파일 경로 지정용, 선택) | 예외적으로 접속정보(host/user/password)는 env가 아니라 `postgres.databases.json` 파일에서 로딩. 여러 DB·클러스터가 nested 구조라 flat env var보다 JSON이 맞음. `from_env()`는 그대로 진입점 역할만 하고 내부에서 파일을 읽음 |
 
 전부 `from_env()` 클래스메서드로 생성, 누락 시 명확한 에러 메시지 throw.
 
@@ -171,6 +178,7 @@ Jira API v3 댓글 body의 ADF(Atlassian Document Format) 처리. 양방향:
 | Jira | 10 | 이슈 CRUD, 댓글 CRUD, JQL 검색, 상태 전이 |
 | Confluence | 5 | 페이지 CRUD, CQL 검색 |
 | GitLab | 21 | 프로젝트/레포 조회, 브랜치 CRUD, MR CRUD, MR 리뷰 (스레드/draft note), 코드 diff |
+| PostgreSQL | 9 | 다중 DB 연결/호스트 내 DB·스키마 탐색, 테이블 목록/스키마 조회, 도메인 키워드 검색, 스키마 DDL 추출, SELECT 실행, EXPLAIN 분석 (전부 읽기 전용) |
 
 ## 인증 흐름
 

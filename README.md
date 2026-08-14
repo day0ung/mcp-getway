@@ -3,11 +3,6 @@
 Jira / Confluence / GitLab REST API를 한 프로세스에서 MCP로 노출하는 경량 게이트웨이.
 SSE 모드로 localhost에 띄워두면, 여러 프로젝트에서 하나의 엔드포인트로 공유해 쓸 수 있다.
 
-## 왜 만들었나
-
-- Atlassian 공식 MCP 서버(`mcp.atlassian.com`)는 조직 권한 문제로 API 토큰 접근이 차단됨. REST API(Basic Auth) 직접 호출로 우회.
-- GitLab은 `@zereight/mcp-gitlab` 같은 npm 기반 서버가 있지만, 사내 인프라(Python-only, Node 미설치 환경)와 맞추고 스코프(141개 → 핵심 21개)를 줄이기 위해 직접 포팅.
-- 결과적으로 **한 프로세스 = 하나의 SSE 엔드포인트**로 Jira + Confluence + GitLab 툴을 Claude Code에서 모두 쓸 수 있다.
 
 ## 기술 스택
 
@@ -28,11 +23,13 @@ src/mcp_gateway/
 ├── jira/                → JiraConfig, JiraClient, 모델
 ├── confluence/          → ConfluenceConfig, ConfluenceClient, 모델
 ├── gitlab/              → GitLabConfig, GitLabClient, 모델
+├── postgres/            → PostgresConfig(다중 연결), PostgresClient, 모델(DDL/EXPLAIN 요약)
 │
 ├── tools/
 │   ├── jira.py          → Jira 도구
 │   ├── confluence.py    → Confluence 도구
-│   └── gitlab.py        → GitLab 도구 (21개)
+│   ├── gitlab.py        → GitLab 도구 (21개)
+│   └── postgres.py      → PostgreSQL 도구 (7개, 읽기 전용)
 │
 └── utils/
     └── adf.py           → Atlassian Document Format 파서
@@ -64,6 +61,40 @@ src/mcp_gateway/
 | MR 기본 | `list_merge_requests`, `get_merge_request`, `create_merge_request`, `get_merge_request_diffs`, `approve_merge_request`, `merge_merge_request` |
 | MR 리뷰 (2단계) | `list_merge_request_changed_files` (파일 경로만) → `get_merge_request_file_diff` (지정 파일 diff 배치) |
 | MR 코멘트 | `create_note`, `mr_discussions`, `create_merge_request_thread`, `create_draft_note`, `bulk_publish_draft_notes` |
+
+### PostgreSQL (9개, 읽기 전용)
+
+DB 연결 정보는 `.env`가 아니라 **`postgres.databases.json`** 파일에서 관리한다 (`postgres.databases.example.json`을 복사해서 채울 것 — git에는 안 올라감).
+여러 DB를 이름(`connection`)으로 구분해 동시에 연결하며, 호스트·계정이 같은 DB끼리는 `clusters`로 묶어 중복 입력을 없앤다:
+
+```json
+{
+  "clusters": {
+    "nonprod": { "host": "...", "user": "readonly", "password": "...", "ssl": false }
+  },
+  "connections": {
+    "dev":  { "cluster": "nonprod", "database": "aptcare2_dev", "schema": "aptcare2" },
+    "qa":   { "cluster": "nonprod", "database": "aptcare2_qa" },
+    "prod": { "host": "prod-pg...", "database": "aptcare2", "user": "readonly", "password": "...", "ssl": true }
+  }
+}
+```
+
+**반드시 읽기 전용 계정을 사용할 것.** 같은 호스트에 있어도 DB마다 계정이 다를 수 있으므로, 새 DB를 실제로 조회하려면
+그 DB 전용 계정으로 `postgres.databases.json`에 연결을 등록해야 한다. 파일이 없으면 PostgreSQL 도구는 그냥 빈 목록으로
+동작하고 다른 서비스(Jira/GitLab 등)에는 영향 없음. 파일 위치를 바꾸려면 `.env`에 `POSTGRES_CONFIG_FILE=경로` 지정.
+
+| 도구 | 설명 |
+|---|---|
+| `postgres_list_connections` | 설정된 연결(DB) 이름 목록 조회 |
+| `postgres_list_databases` | 연결과 같은 서버(호스트)에 있는 전체 데이터베이스 목록 조회 (미등록 DB 발견용) |
+| `postgres_list_schemas` | 연결된 DB 안의 스키마 목록 조회 |
+| `postgres_list_tables` | 테이블/뷰 목록 (스키마·이름 패턴 필터) |
+| `postgres_get_table_schema` | 테이블 컬럼/타입/제약조건/인덱스/코멘트 조회 |
+| `postgres_search_schema` | 테이블명·컬럼명·코멘트 키워드로 도메인 스키마 검색 |
+| `postgres_get_schema_ddl` | 스키마 전체 테이블의 CREATE TABLE/INDEX/COMMENT DDL 생성 |
+| `postgres_execute_query` | 사용자가 입력한 SELECT 쿼리 직접 실행 (다중 문장·DDL/DML은 코드 레벨에서 거부) |
+| `postgres_explain_query` | EXPLAIN으로 실행 계획 분석 — 인덱스 사용 여부, Seq Scan 경고, 비용 확인 (`analyze=true`면 실제 실행해 실측치 포함) |
 
 ## 사전 요구사항
 
@@ -184,9 +215,4 @@ mcp-gateway
 | `CONFLUENCE_BASE_URL` / `_EMAIL` / `_API_TOKEN` | - | Confluence가 Jira와 다른 인스턴스일 때만 |
 | `GITLAB_BASE_URL` | ✅ | GitLab 루트 URL (예: `https://gitlab.사내.co.kr`). `/api/v4` 붙이지 말 것 |
 | `GITLAB_TOKEN` | ✅ | GitLab Personal Access Token (scope: `api`) |
-
-## 문서
-
-- [JIRA API 참고 가이드](docs/jira-mcp-server-guide.md)
-- [아키텍처 설계](docs/architecture.md)
-- [Claude Code는 이 설정을 어떻게 읽는가 (부록)](docs/claude-code-config.md)
+| `POSTGRES_CONFIG_FILE` | - | PostgreSQL 연결 정보 JSON 파일 경로 (기본: `postgres.databases.json`). 실제 host/user/password는 이 변수가 아니라 그 JSON 파일 안에 있음 — 아래 "PostgreSQL" 섹션 참고 |

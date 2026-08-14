@@ -137,6 +137,9 @@ celerybeat.pid
 # Environments
 .env
 .envrc
+
+# PostgreSQL 연결 정보 (host/user/password 포함, 커밋 금지)
+postgres.databases.json
 .venv
 env/
 venv/
