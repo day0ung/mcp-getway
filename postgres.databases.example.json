@@ -20,7 +20,7 @@
       "user": "",
       "password": "",
       "ssl": false
-    },
+    }
   },
   "connections": {
     "service_DB_name_dev": { "cluster": "service_DB_name", "database": "service_DB_name_dev", "schema": "service_DB_name" },
